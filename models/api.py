@@ -32,3 +32,13 @@ class DeleteRequest(BaseModel):
 
 class DeleteResponse(BaseModel):
     success: bool
+
+
+class UpdateTextRequest(BaseModel):
+    document_id: str
+    text: str
+
+
+class UpdateTextResponse(BaseModel):
+    success: bool
+    updated_ids: List[str]
