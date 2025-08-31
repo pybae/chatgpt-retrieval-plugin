@@ -5,6 +5,7 @@ import asyncio
 from models.models import (
     Document,
     DocumentChunk,
+    DocumentMetadata,
     DocumentMetadataFilter,
     Query,
     QueryResult,
@@ -84,3 +85,39 @@ class DataStore(ABC):
         Returns whether the operation was successful.
         """
         raise NotImplementedError
+
+    async def update_text(self, document_id: str, new_text: str) -> List[str]:
+        """
+        Updates the text content of an existing document while preserving metadata.
+        Returns a list of updated document chunk ids.
+        """
+        # Query for existing document chunks to get metadata
+        query = Query(
+            query="", 
+            filter=DocumentMetadataFilter(document_id=document_id),
+            top_k=1000  # Get all chunks for this document
+        )
+        result = await self.query([query])
+        
+        if not result or not result[0].results:
+            raise ValueError(f"Document with ID {document_id} not found")
+        
+        # Extract metadata from the first chunk (should be consistent across chunks)
+        first_chunk = result[0].results[0]
+        metadata = first_chunk.metadata
+        
+        # Create new document with updated text and preserved metadata
+        updated_document = Document(
+            id=document_id,
+            text=new_text,
+            metadata=DocumentMetadata(
+                source=metadata.source,
+                source_id=metadata.source_id,
+                url=metadata.url,
+                created_at=metadata.created_at,
+                author=metadata.author,
+            )
+        )
+        
+        # Use upsert to replace the document (it will delete old chunks and create new ones)
+        return await self.upsert([updated_document])
