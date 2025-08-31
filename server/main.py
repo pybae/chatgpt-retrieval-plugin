@@ -11,6 +11,8 @@ from models.api import (
     DeleteResponse,
     QueryRequest,
     QueryResponse,
+    UpdateTextRequest,
+    UpdateTextResponse,
     UpsertRequest,
     UpsertResponse,
 )
@@ -141,6 +143,21 @@ async def delete(
             delete_all=request.delete_all,
         )
         return DeleteResponse(success=success)
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
+
+
+@app.post(
+    "/update-text",
+    response_model=UpdateTextResponse,
+)
+async def update_text(
+    request: UpdateTextRequest = Body(...),
+):
+    try:
+        result = await datastore.update_text(request.document_id, request.text)
+        return UpdateTextResponse(success=result.success, updated_ids=result.updated_ids)
     except Exception as e:
         logger.error(e)
         raise HTTPException(status_code=500, detail="Internal Service Error")
